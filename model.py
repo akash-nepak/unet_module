@@ -76,20 +76,112 @@ class UNET(nn.Module):
                self.encoder_config.append(((d,d),"downsample"))
 
                if idx< len(channel_sizes)-1:
-                    self.encoder_config.append(((d,channel_sizes[idx+1]),"residual"))
+                    self.encoder_config.append(((d,channel_sizes[idx+1]),"residual")) #increasing the number of convolutions per layer 
 
           self.bottleneck_config =[]
           for _ in range(residual_blocks_per_group):
                self.bottleneck_config.append(((ending_channel_size,ending_channel_size),"residual"))
 
-          out_dim = ending_channel_size
+          out_dim = ending_channel_size #512 starting of the bottleneck
 
           reversed_encoder_config = self.encoder_config[::-1] #making decoder mirror of encoder reversing order
 
           self.decoder_config =[]
-          for idx, (metadata,type) in enumerate(reversed_encoder_config):
+          for idx, (metadata,type) in enumerate(reversed_encoder_config): # developing the bottleneck
                
-               enc_in_channels, enc_out_channels = metadata
+               enc_in_channels, enc_out_channels = metadata #extracts the number of channel from each layer 
+
+               concat_num_channels = out_dim + enc_out_channels #out_dim = output from the current decoder, enc_out_channel = skip connectionss from encoder
+
+               self.decoder_config.append(((concat_num_channels,enc_in_channels),"residual")) #decoder from 768 conactinated channel to 256 channels, reverse encoder
+
+               if type == "downsample": #resizing image to the size before that layer of encoder block
+                    self.decoder_config.append(((enc_in_channels,enc_in_channels),"upsample")) #decoder block
+
+               out_dim = enc_in_channels 
+            
+          concat_num_channels = starting_channel_size * 2
+          self.decoder_config.append(((concat_num_channels,starting_channel_size),"residual"))
+
+          ## actual model implementaton
+
+          self.conv_in_proj = nn.Conv2d(self.input_image_channels,starting_channel_size,kernel_size=3,padding="same") 
+
+          self.encoder = nn.ModuleList() #Encoder module having 
+          for metadata, type in self.encoder_config:
+               if type == "residual":  #encoder has only 2 types downsample and residual
+                    in_channels, out_channels = metadata
+                    self.encoder.append(ResidualBlock(in_channels,out_channels,groupnorm_num_groups))
+               elif type == "downsample": #we use 
+                    in_channels,out_channels = metadata
+                    self.encoder.append(nn.Conv2d(in_channels,out_channels,kernel_size=3,stride =2,padding=1))
+
+          self.bottleneck = nn.ModuleList() #just residual block stacked up
+          for(in_channels,out_channels), _ in self.bottleneck_config:
+               self.bottleneck.append(ResidualBlock(in_channels,out_channels,groupnorm_num_groups))
+               
+
+          self.decoder = nn.ModuleList()    #modulr contains object layers and register it as trainable paramanetr
+          for metadata , type in self.decoder_config:
+               if  type == "residual":
+                    in_channels,out_channels =metadata
+                    self.decoder.append(ResidualBlock(in_channels,out_channels,groupnorm_num_groups  ))
+               elif type  == "upsample":
+                    in_channels,out_channels = metadata
+                    self.decoder.append(UpsampleBlock(in_channels,out_channels,interpolate =self.interpolate))
+                
+                    
+          self.conv_out_proj = nn.Conv2d(in_channels=starting_channel_size,out_channels=num_classes,kernel_size=1)
+
+     def forward(self,x):
+          
+          residuals = [ ] # storing the residual connection images
+          x = self.conv_in_proj(x)
+
+          residuals.append(x) # stores residuals from first convolution as well
+
+          for module in self.encoder: #go through each module in encoder and save the residual output from each moduel
+                x = module(x)
+                residuals.append(x)
+
+          
+          for module in self.bottleneck: #bottleneck applied to input image x
+               x = module(x)
+
+          for module in self.decoder: # looping through the deoder block
+               if isinstance (module,ResidualBlock): 
+                    residual_tensor = residuals.pop()
+
+                    x = torch.cat([x,residual_tensor],dim =1)
+                    x = module (x)
+
+               else:
+                    x = module(x)
+
+
+          x = self.conv_out_proj(x)
+          print(x.shape)
+                    
+             
+
+                      
+               
+               
+
+          
+
+           
+
+
+
+
+
+          
+
+
+                 
+
+
 
           
 
@@ -130,6 +222,7 @@ if __name__ == "__main__":
 
     rand = torch.randn(4,3,256,256)
     unet = UNET()
+    print(unet(rand))
    
 
     
