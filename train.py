@@ -26,5 +26,5 @@ def train(batch_size =64,gradient_accumulation_steps =1,learning_rate= .001,num_
      accelerator = Accelerator(gradient_accumulation_steps = gradient_accumulation_steps)
 
 
-     path_to_experiment 
+     path_to_experiment = 
 

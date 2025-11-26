@@ -160,63 +160,11 @@ class UNET(nn.Module):
 
 
           x = self.conv_out_proj(x)
+
           print(x.shape)
+          
                     
-             
-
-                      
-               
-               
-
-          
-
-           
-
-
-
-
-
-          
-
-
-                 
-
-
-
-          
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-           
-
-
-
-
-
-
-
-
-
-        
-
-        
-
-
-
-
-
+            
 
 if __name__ == "__main__":
 
@@ -224,7 +172,6 @@ if __name__ == "__main__":
     unet = UNET()
     print(unet(rand))
    
-
     
     
 
