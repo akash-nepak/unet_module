@@ -31,18 +31,36 @@ def train(batch_size =64,gradient_accumulation_steps =2,learning_rate= .001,num_
      if not os.path.exists(path_to_experiment): #working directory folder to store checkpints
           os.mkdir(path_to_experiment)
     
-    micro_batchsize = batch_size // gradient_accumulation_steps
+     micro_batchsize = batch_size // gradient_accumulation_steps
 
-    train_data = ADE20KDataset(path_to_data,train=True, image_size=image_size)
-    test_data = ADE20KDataset(path_to_data,train=False, image_size=image_size) 
-    trainloader = DataLoader(train_data,batch_size=micro_batchsize,shuffle=True,num_workers=8)
-    testloader = DataLoader(test_data,batch_size=micro_batchsize,shuffle = True,num_workers =8)
+     train_data = ADE20KDataset(path_to_data,train=True, image_size=image_size)
+     test_data = ADE20KDataset(path_to_data,train=False, image_size=image_size) 
+     trainloader = DataLoader(train_data,batch_size=micro_batchsize,shuffle=True,num_workers=8)
+     testloader = DataLoader(test_data,batch_size=micro_batchsize,shuffle = True,num_workers =8)
 
 
-     loss_fn = nn.
+     loss_fn = nn.CrossEntropyLoss(ignore_index =-1) #ignores background information
 
-     
+     model = UNET(in_channels=3,num_classes=150,start_dim=64,dim_mults=(1,2,4,8))
+
+     optimizer = optim.Adam(model.parameters,lr =learning_rate)
+
+     model,optimizer,trainloader,testloader = accelerator.prepare(  model,optimizer,trainloader,testloader)
     
+     
+     for epoch in range(1, num_epochs +1):
+
+          accelerator.print(f"Training Epoch[{epoch}/{num_epochs}]")
+
+          train_loss ,test_loss = [],[]
+          train_acc, test_acc = [], []
+
+          accumulated_loss =0
+          accumulated_accuracy = 
+
+
+
+
 
 
 
