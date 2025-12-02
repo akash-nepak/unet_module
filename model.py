@@ -135,7 +135,7 @@ class UNET(nn.Module):
 
      def forward(self,x):
           
-          residuals = [ ] # storing the residual connection images
+          residuals = [ ] # storing the residual connection images 
           x = self.conv_in_proj(x)
 
           residuals.append(x) # stores residuals from first convolution as well
@@ -150,9 +150,9 @@ class UNET(nn.Module):
 
           for module in self.decoder: # looping through the deoder block
                if isinstance (module,ResidualBlock): 
-                    residual_tensor = residuals.pop()
+                    residual_tensor = residuals.pop() #pop the last thing in the residual block
 
-                    x = torch.cat([x,residual_tensor],dim =1)
+                    x = torch.cat([x,residual_tensor],dim =1) # concatinating the residuals 
                     x = module (x)
 
                else:
@@ -161,7 +161,7 @@ class UNET(nn.Module):
 
           x = self.conv_out_proj(x)
 
-          print(x.shape)
+           
           
                     
             
