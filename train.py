@@ -45,7 +45,7 @@ def train(batch_size =64,gradient_accumulation_steps =2,learning_rate= .001,num_
 
      optimizer = optim.Adam(model.parameters,lr =learning_rate)
 
-     model,optimizer,trainloader,testloader = accelerator.prepare(  model,optimizer,trainloader,testloader)
+     model,optimizer,trainloader,testloader = accelerator.prepare(  model,optimizer,trainloader,testloader) #for parallel gpu 
     
      
      for epoch in range(1, num_epochs +1):
@@ -54,10 +54,76 @@ def train(batch_size =64,gradient_accumulation_steps =2,learning_rate= .001,num_
 
           train_loss ,test_loss = [],[]
           train_acc, test_acc = [], []
+          
 
           accumulated_loss =0
-          accumulated_accuracy = 
+          accumulated_accuracy =  0
+          progress_bar = tqdm(range(len(trainloader)//gradient_accumulation_steps),disable=not accelerator.is_main_process)
 
+
+
+          model.train()
+
+          for images,targets in trainloader:
+
+               with accelerator.accumulate(model):
+                    pred = model(images)
+                    loss = loss_fn(pred,targets)
+                    accumulated_loss += loss/gradient_accumulation_steps 
+
+                    predicted = pred.argmax(axis=1) #which pixel has the highest probability along the n channel dimensions 
+                    accuracy = (predicted==targets).sum()/torch.numel(predicted)
+                    accumulated_accuracy = accuracy/gradient_accumulation_steps
+
+                    accelerator.backward(loss)
+
+                    if accelerator.sync_gradients:
+                         accelerator.clip_grad_norm(model.parameter(),1.0)
+
+                         loss_gathered = accelerator.gather_for_metrics(accumulated_loss) #accumulate loss from all the gpus
+
+                         accuracy_gathered = accelerator.gather_for_metrics(accumulated_loss)
+
+                         train_loss.append(torch.mean(loss_gathered).item())
+                         train_acc.append(torch.mean(accuracy_gathered).item())
+
+                         accumulated_accuracy, accumulated_loss = 0,0 
+                         progress_bar.update(1)
+
+                         optimizer.step()
+                         optimizer.zero_grad()
+
+
+          model.eval()
+
+          for images,targets in testloader:
+
+               with torch.no_grad():
+                    pred = model(images)
+
+                    loss = loss_fn(pred,targets)
+
+                    predicted = pred.argmax(axis=1)
+                    accuracy = (predicted == targets).sum()/torch.numel(predicted)
+
+                    loss_gathered = accelerator.gather_for_metrics(loss)
+                    accuracy_gathered = accelerator.gather_for_metrics(accumulated_loss)
+
+
+                    test_loss.append(torch.mean(loss_gathered).item())
+                    test_acc.append(torch.mean(accuracy_gathered).item())
+
+
+                    epoch_train_loss = np.mean(train_loss)
+                    epoch_test_loss = np.mean(test_loss)
+                    epoch_train_acc = np.mean(train_acc)
+                    epoch_test_acc = np.mean(test_acc)
+
+
+                    accelerator.print(f"Training Accuracy: {epoch_train_acc},Training Loss {epoch_train_loss}")
+                    accelerator.print(f"Testing Accuracy: {epoch_test_acc},Training Loss {epoch_test_loss}")
+
+                    accelerator.save_model (model,os.path.join(path_to_experiment),f"checkpoint {epoch}")
 
 
 
