@@ -20,16 +20,16 @@ from dataloader import ADE20KDataset
 from model import UNET
 
 
-path_to_data = "/home/akash-1/train_data/ADE20K"
+path_to_data = "/content/drive/MyDrive/ADE20K"
 
-def train(batch_size =64,gradient_accumulation_steps =2,learning_rate= .001,num_epochs =100,image_size = 256,experiment_name = "unet_focal"):
+def train(batch_size =32,gradient_accumulation_steps =2,learning_rate= .001,num_epochs =100,image_size = 256,experiment_name = "unet_focal"):
      accelerator = Accelerator(gradient_accumulation_steps = gradient_accumulation_steps)
 
 
      path_to_experiment = os.path.join("work_dir",experiment_name)
 
      if not os.path.exists(path_to_experiment): #working directory folder to store checkpints
-          os.mkdir(path_to_experiment)
+          os.mkdirs(path_to_experiment)
     
      micro_batchsize = batch_size // gradient_accumulation_steps
 
@@ -43,7 +43,7 @@ def train(batch_size =64,gradient_accumulation_steps =2,learning_rate= .001,num_
 
      model = UNET(in_channels=3,num_classes=150,start_dim=64,dim_mults=(1,2,4,8))
 
-     optimizer = optim.Adam(model.parameters,lr =learning_rate)
+     optimizer = optim.Adam(model.parameters(),lr =learning_rate)
 
      model,optimizer,trainloader,testloader = accelerator.prepare(  model,optimizer,trainloader,testloader) #for parallel gpu 
     
@@ -78,7 +78,7 @@ def train(batch_size =64,gradient_accumulation_steps =2,learning_rate= .001,num_
                     accelerator.backward(loss)
 
                     if accelerator.sync_gradients:
-                         accelerator.clip_grad_norm(model.parameter(),1.0)
+                         accelerator.clip_grad_norm_(model.parameters(),1.0)
 
                          loss_gathered = accelerator.gather_for_metrics(accumulated_loss) #accumulate loss from all the gpus
 
@@ -104,10 +104,10 @@ def train(batch_size =64,gradient_accumulation_steps =2,learning_rate= .001,num_
                     loss = loss_fn(pred,targets)
 
                     predicted = pred.argmax(axis=1)
-                    accuracy = (predicted == targets).sum()/torch.numel(predicted)
+                    accuracy = (predicted == targets).float().mean()
 
                     loss_gathered = accelerator.gather_for_metrics(loss)
-                    accuracy_gathered = accelerator.gather_for_metrics(accumulated_loss)
+                    accuracy_gathered = accelerator.gather_for_metrics(accuracy)
 
 
                     test_loss.append(torch.mean(loss_gathered).item())
@@ -125,10 +125,9 @@ def train(batch_size =64,gradient_accumulation_steps =2,learning_rate= .001,num_
 
                     accelerator.save_model (model,os.path.join(path_to_experiment),f"checkpoint {epoch}")
 
+if __name__ == "__main__":
 
-
-
-
+     train()
 
 
 

@@ -160,6 +160,7 @@ class UNET(nn.Module):
 
 
           x = self.conv_out_proj(x)
+          return(x)
 
            
           
