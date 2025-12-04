@@ -123,7 +123,7 @@ def train(batch_size =32,gradient_accumulation_steps =2,learning_rate= .001,num_
                     accelerator.print(f"Training Accuracy: {epoch_train_acc},Training Loss {epoch_train_loss}")
                     accelerator.print(f"Testing Accuracy: {epoch_test_acc},Training Loss {epoch_test_loss}")
 
-                    output_dir = os.path.join(path_to_experiment,f"chexkpoint {epoch}")
+                    output_dir = os.path.join(path_to_experiment,f"checkpoint {epoch}")
                     accelerator.save_model (model,output_dir)
 
 if __name__ == "__main__":
