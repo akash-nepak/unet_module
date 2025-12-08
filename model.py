@@ -41,7 +41,7 @@ class ResidualBlock(nn.Module):
         return x 
     
 class UpsampleBlock(nn.Module):
-    def __init__(self,in_channels,out_channels, interpolate = False):
+    def __init__(self,in_channels,out_channels, interpolate = True):
         super().__init__()
 
         if interpolate :
@@ -57,7 +57,7 @@ class UpsampleBlock(nn.Module):
 
         
 class UNET(nn.Module):
-     def __init__(self,in_channels=3,num_classes =150,start_dim=64,dim_mults =(1,2,4,8),residual_blocks_per_group =1,groupnorm_num_groups=16,interpolated_upsample =False): #star_dim is input image channel output convolutions
+     def __init__(self,in_channels=3,num_classes =150,start_dim=64,dim_mults =(1,2,4,8),residual_blocks_per_group =1,groupnorm_num_groups=16,interpolated_upsample =True): #star_dim is input image channel output convolutions
           super().__init__()
 
           self.input_image_channels = in_channels
