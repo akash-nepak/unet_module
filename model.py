@@ -48,7 +48,7 @@ class UpsampleBlock(nn.Module):
             self.upsample = nn.Sequential(nn.Upsample(scale_factor=2,mode='bilinear'),
                                           nn.Conv2d(in_channels,out_channels,kernel_size=3,padding = 'same')) #brute force bilinear interpolation with a convolution operation
         else:
-            self.upsample = nn.ConvTranspose2d(in_channels,out_channels,kernel_size=2,stride=2) #causes checkerboard artifacting error
+            self.upsample = nn.ConvTranspose2d(in_channels,out_channels,kernel_size=2,stride=2) #causes checkerboard artifacting error but  can learn from backprop
 
     def forward(self,x):
                return self.upsample(x)

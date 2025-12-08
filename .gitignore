@@ -13,6 +13,7 @@ data/
 **/*.JPEG
 **/*.png
 **/*.PNG
+**/*.safetensors
 
 
 # Ignore common annotation file types and annotation folders
