@@ -22,7 +22,7 @@ from model import UNET
 
 path_to_data = "/content/drive/MyDrive/ADE20K"
 
-def train(batch_size =32,gradient_accumulation_steps =2,learning_rate= .0001,num_epochs =100,image_size = 256,experiment_name = "unet_focal"):
+def train(batch_size =64,gradient_accumulation_steps =2,learning_rate= .0001,num_epochs =100,image_size = 256,experiment_name = "unet_focal"):
      accelerator = Accelerator(gradient_accumulation_steps = gradient_accumulation_steps)
 
 
