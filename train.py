@@ -46,7 +46,7 @@ def train(batch_size =32,gradient_accumulation_steps =2,learning_rate= .001,num_
      optimizer = optim.Adam(model.parameters(),lr =learning_rate)
 
      model,optimizer,trainloader,testloader = accelerator.prepare(  model,optimizer,trainloader,testloader) #for parallel gpu 
-    
+     best_test_loss = np.inf
      
      for epoch in range(1, num_epochs +1):
 
@@ -123,8 +123,18 @@ def train(batch_size =32,gradient_accumulation_steps =2,learning_rate= .001,num_
                     accelerator.print(f"Training Accuracy: {epoch_train_acc},Training Loss {epoch_train_loss}")
                     accelerator.print(f"Testing Accuracy: {epoch_test_acc},Training Loss {epoch_test_loss}")
 
-                    output_dir = os.path.join(path_to_experiment,f"checkpoint {epoch}")
+
+                    if epoch_test_loss < best_test_loss: # saving the best model, to prevent model from overfitting
+                         accelerator.print("--saving--")
+                         best_test_loss = epoch_test_loss
+
+
+                        output_dir = os.path.join(path_to_experiment,f"best_checkpoint {epoch}")
+                        accelerator.save_model (model,output_dir)
+
+                    output_dir = os.path.join(path_to_experiment,f"last_checkpoint {epoch}")
                     accelerator.save_model (model,output_dir)
+                 
 
 if __name__ == "__main__":
 
