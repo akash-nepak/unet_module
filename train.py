@@ -35,8 +35,8 @@ def train(batch_size =128,gradient_accumulation_steps =2,learning_rate= .0001,nu
 
      train_data = ADE20KDataset(path_to_data,train=True, image_size=image_size)
      test_data = ADE20KDataset(path_to_data,train=False, image_size=image_size) 
-     trainloader = DataLoader(train_data,batch_size=micro_batchsize,shuffle=True,num_workers=4)
-     testloader = DataLoader(test_data,batch_size=micro_batchsize,shuffle = False,num_workers =4)
+     trainloader = DataLoader(train_data,batch_size=micro_batchsize,shuffle=True,num_workers=8)
+     testloader = DataLoader(test_data,batch_size=micro_batchsize,shuffle = False,num_workers =8)
 
 
      loss_fn = nn.CrossEntropyLoss(ignore_index =-1) #ignores background information
