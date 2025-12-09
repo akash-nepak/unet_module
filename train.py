@@ -35,8 +35,8 @@ def train(batch_size =128,gradient_accumulation_steps =2,learning_rate= .0001,nu
 
      train_data = ADE20KDataset(path_to_data,train=True, image_size=image_size)
      test_data = ADE20KDataset(path_to_data,train=False, image_size=image_size) 
-     trainloader = DataLoader(train_data,batch_size=micro_batchsize,shuffle=True,num_workers=8)
-     testloader = DataLoader(test_data,batch_size=micro_batchsize,shuffle = False,num_workers =8)
+     trainloader = DataLoader(train_data,batch_size=micro_batchsize,shuffle=True,num_workers=4)
+     testloader = DataLoader(test_data,batch_size=micro_batchsize,shuffle = False,num_workers =4)
 
 
      loss_fn = nn.CrossEntropyLoss(ignore_index =-1) #ignores background information
@@ -68,32 +68,45 @@ def train(batch_size =128,gradient_accumulation_steps =2,learning_rate= .0001,nu
           model.train()
 
           for images,targets in trainloader:
-
-               with accelerator.accumulate(model):
+              with accelerator.accumulate(model):
                     pred = model(images)
-                    loss = loss_fn(pred,targets)
-                    accumulated_loss += loss/gradient_accumulation_steps 
+                    loss = loss_fn(pred, targets)
+                    
+                   
+                    step_loss = loss / gradient_accumulation_steps
+                    
+                   
+                    accelerator.backward(step_loss)
+                    
+                    
+                    accumulated_loss += step_loss.detach() 
 
-                    predicted = pred.argmax(dim=1) #which pixel has the highest probability along the n channel dimensions 
-                    accuracy = (predicted==targets).sum()/torch.numel(predicted)
-                    accumulated_accuracy += accuracy/gradient_accumulation_steps
-
-                    accelerator.backward(loss)
+                   
+                    predicted = pred.argmax(dim=1) 
+                    accuracy = (predicted == targets).float().mean()
+                    
+                   
+                    accumulated_accuracy += accuracy.detach() / gradient_accumulation_steps
 
                     if accelerator.sync_gradients:
-                         accelerator.clip_grad_norm_(model.parameters(),1.0)
+                         accelerator.clip_grad_norm_(model.parameters(), 1.0)
 
-                         loss_gathered = accelerator.gather_for_metrics(accumulated_loss) #accumulate loss from all the gpus
-
+                       
+                         loss_gathered = accelerator.gather_for_metrics(accumulated_loss)
                          accuracy_gathered = accelerator.gather_for_metrics(accumulated_accuracy)
 
                          train_loss.append(torch.mean(loss_gathered).item())
                          train_acc.append(torch.mean(accuracy_gathered).item())
 
-                         accumulated_accuracy, accumulated_loss = 0.0,0.0
+                     
+                         accumulated_accuracy = 0.0
+                         accumulated_loss = 0.0
+                         
                          progress_bar.update(1)
+                         progress_bar.set_postfix({"loss": train_loss[-1]})
 
                          optimizer.step()
+                         scheduler.step()
                          optimizer.zero_grad()
 
 
